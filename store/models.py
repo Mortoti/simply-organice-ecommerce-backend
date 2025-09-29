@@ -9,7 +9,7 @@ class Collection(models.Model):
 class Product(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
-    image = models.ImageField()
+    image = models.ImageField(upload_to='products/')
     price = models.DecimalField(decimal_places=2, max_digits=10)
     availability = models.BooleanField()
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
