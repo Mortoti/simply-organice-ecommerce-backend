@@ -11,7 +11,7 @@ class Product(models.Model):
     description = models.TextField()
     image = models.ImageField(upload_to='products/')
     price = models.DecimalField(decimal_places=2, max_digits=10)
-    availability = models.BooleanField()
+    is_available = models.BooleanField()
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
 class Order(models.Model):
     STATUS_PENDING = 'Pending'
