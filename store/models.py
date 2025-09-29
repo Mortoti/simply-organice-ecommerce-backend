@@ -12,4 +12,23 @@ class Product(models.Model):
     price = models.DecimalField(decimal_places=2, max_digits=10)
     availability = models.BooleanField()
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+class Order(models.Model):
+    STATUS_PENDING = 'Pending'
+    STATUS_SHIPPED = 'Shipped'
+    STATUS_COMPLETED = 'Completed'
+    STATUS_CANCELLED = 'Cancelled'
+    STATUS_CHOICES = (
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_SHIPPED, 'Shipped'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_CANCELLED, 'Cancelled'),
+    )
+    customer_name = models.CharField(max_length=100)
+    customer_number = models.CharField(max_length=100)
+    recipient_name = models.CharField(max_length=100)
+    recipient_number = models.CharField(max_length=100)
+    recipient_address = models.TextField()
+    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
 
