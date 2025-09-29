@@ -34,7 +34,7 @@ class Order(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField()
     price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10)
 
