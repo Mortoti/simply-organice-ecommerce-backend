@@ -4,15 +4,21 @@ from django.db import models
 class Branch(models.Model):
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
+    def __str__(self):
+        return self.name
 class Collection(models.Model):
     name = models.CharField(max_length=100)
+    def __str__(self):
+        return self.name
 class Product(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
     image = models.ImageField(upload_to='products/')
-    price = models.DecimalField(decimal_places=2, max_digits=10)
+    price = models.DecimalField(decimal_places=2, max_digits=10, default=0)
     is_available = models.BooleanField()
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    def __str__(self):
+        return self.name
 class Order(models.Model):
     STATUS_PENDING = 'Pending'
     STATUS_SHIPPED = 'Shipped'
@@ -25,16 +31,18 @@ class Order(models.Model):
         (STATUS_CANCELLED, 'Cancelled'),
     )
     customer_name = models.CharField(max_length=100)
-    customer_number = models.CharField(max_length=100)
+    customer_number = models.CharField(max_length=15)
     recipient_name = models.CharField(max_length=100)
-    recipient_number = models.CharField(max_length=100)
+    recipient_number = models.CharField(max_length=15)
     recipient_address = models.TextField()
     status = models.CharField(max_length=25, choices=STATUS_CHOICES, default=STATUS_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
+    def __str__(self):
+        return  f'Order {self.id} - {self.recipient_name}'
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField()
-    price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10)
+    price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10, default=0)
 
