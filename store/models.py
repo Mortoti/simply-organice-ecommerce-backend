@@ -31,5 +31,10 @@ class Order(models.Model):
     recipient_address = models.TextField()
     status = models.CharField(max_length=25, choices=STATUS_CHOICES, default=STATUS_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+    price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10)
 
