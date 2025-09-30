@@ -30,7 +30,7 @@ class OrderAdmin(admin.ModelAdmin):
                     )
     autocomplete_fields = ('branch',)
     list_filter = ('status',)
-    search_fields = ('customer_name','recipient_name',)
+    search_fields = ('customer_name__istartswith','recipient_name__istartswith',)
 
 @admin.register(models.OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
