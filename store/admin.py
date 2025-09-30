@@ -19,3 +19,14 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'is_available')
     list_filter = ('is_available',)
     autocomplete_fields = ('collection',)
+@admin.register(models.Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('customer_name',
+                    'recipient_name',
+                    'recipient_number',
+                    'recipient_address',
+                    'status',
+                    )
+    autocomplete_fields = ('branch',)
+    list_filter = ('status',)
+    search_fields = ('customer_name','recipient_name',)
