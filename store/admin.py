@@ -19,6 +19,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'is_available')
     list_filter = ('is_available',)
     autocomplete_fields = ('collection',)
+    search_fields = ('name',)
 @admin.register(models.Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('customer_name',
@@ -30,3 +31,8 @@ class OrderAdmin(admin.ModelAdmin):
     autocomplete_fields = ('branch',)
     list_filter = ('status',)
     search_fields = ('customer_name','recipient_name',)
+
+@admin.register(models.OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    list_display = ('product', 'quantity','price_at_purchase')
+    autocomplete_fields = ('product','order')
