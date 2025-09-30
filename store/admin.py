@@ -8,3 +8,7 @@ class BranchAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     ordering = ('name',)
     list_filter = ('is_active',)
+@admin.register(models.Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    list_filter = ('name',)
