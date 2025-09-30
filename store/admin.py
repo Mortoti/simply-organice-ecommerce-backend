@@ -14,3 +14,8 @@ class CollectionAdmin(admin.ModelAdmin):
     list_filter = ('name',)
     search_fields = ('name',)
     list_per_page = 10
+@admin.register(models.Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price', 'is_available')
+    list_filter = ('is_available',)
+    autocomplete_fields = ('collection',)
