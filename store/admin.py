@@ -12,3 +12,5 @@ class BranchAdmin(admin.ModelAdmin):
 class CollectionAdmin(admin.ModelAdmin):
     list_display = ("name",)
     list_filter = ('name',)
+    search_fields = ('name',)
+    list_per_page = 10
