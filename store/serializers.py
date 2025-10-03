@@ -1,8 +1,13 @@
 from rest_framework import serializers
-from . models import  Product
+from .models import Product, Collection, Order, OrderItem
 
-class ProductSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField(max_length=100)
-    price = serializers.DecimalField(max_digits=6, decimal_places=2)
-    is_available = serializers.BooleanField()
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['name', 'price', 'description', 'image', 'is_available']
+class CollectionSerializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True, read_only=True)
+    class Meta:
+        model = Collection
+        fields = ['id', 'name', 'products']

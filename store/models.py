@@ -16,7 +16,7 @@ class Product(models.Model):
     image = models.ImageField(upload_to='products/')
     price = models.DecimalField(decimal_places=2, max_digits=10, default=0)
     is_available = models.BooleanField()
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='products')
     def __str__(self):
         return self.name
 class Order(models.Model):
@@ -30,16 +30,25 @@ class Order(models.Model):
         (STATUS_COMPLETED, 'Completed'),
         (STATUS_CANCELLED, 'Cancelled'),
     )
+    PAYMENT_PENDING = 'Pending'
+    PAYMENT_COMPLETED = 'Completed'
+    PAYMENT_FAILED= 'Failed'
+    PAYMENT_STATUS_CHOICES = (
+        (PAYMENT_PENDING, 'Pending'),
+        (PAYMENT_COMPLETED, 'Completed'),
+        (PAYMENT_FAILED, 'Failed'),
+    )
     customer_name = models.CharField(max_length=100)
     customer_number = models.CharField(max_length=15)
     recipient_name = models.CharField(max_length=100)
     recipient_number = models.CharField(max_length=15)
     recipient_address = models.TextField()
     status = models.CharField(max_length=25, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    payment_status = models.CharField(max_length=25, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
     def __str__(self):
-        return  f'Order {self.id} - {self.recipient_name}'
+        return  f'Order {self.pk} - {self.recipient_name}'
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
@@ -47,5 +56,19 @@ class OrderItem(models.Model):
     price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10, default=0)
 
     def __str__(self):
-        return f'Order {self.id} - {self.product.name}'
+        return f'Order {self.pk} - {self.product.name}'
+class Cart(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    client_token = models.CharField(max_length=100, unique=True)
+    def __str__(self):
+        return f'Cart {self.client_token}'
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField(default=1)
+    @property
+    def total_price(self):
+        return self.quantity * self.product.price
+
+
 
