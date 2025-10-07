@@ -15,17 +15,20 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 # Create your views here.
 class ProductViewSet(ReadOnlyModelViewSet):
     queryset = Product.objects.all()
+    serializer_class = ProductSerializer
 
 
 
 class CollectionViewSet(ReadOnlyModelViewSet):
+    queryset = Collection.objects.all()
     serializer_class = CollectionSerializer
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         if self.action == 'list':
             return Collection.objects.prefetch_related('products').annotate(
                 product_count=Count('products'))
-        return Collection.objects.all()
+        return queryset
 
 
 
