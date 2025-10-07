@@ -6,24 +6,27 @@ from rest_framework.decorators import APIView, api_view
 
 from .models import Product, Collection
 from .serializers import ProductSerializer, CollectionSerializer
+from rest_framework.generics import ListCreateAPIView
+from django.db.models import Count
+
 
 
 # Create your views here.
-@api_view(['GET'])
-def product_list(request):
+class ProductList(ListCreateAPIView):
     queryset = Product.objects.all()
-    serializer = ProductSerializer(queryset, many=True)
-    return  Response(serializer.data)
+    serializer_class = ProductSerializer
+
 @api_view(['GET'])
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
     serializer = ProductSerializer(product)
     return Response(serializer.data)
-@api_view(['GET'])
-def collection_list(request):
-    queryset = Collection.objects.prefetch_related('products').all()
-    serializer = CollectionSerializer(queryset, many=True)
-    return Response(serializer.data)
+
+
+class CollectionList(ListCreateAPIView):
+    queryset = Collection.objects.prefetch_related('products').annotate(product_count= Count('products')).all()
+    serializer_class = CollectionSerializer
+
 @api_view(['GET'])
 def collection_detail(request, pk):
     collection = get_object_or_404(Collection, pk=pk)
