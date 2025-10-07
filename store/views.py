@@ -6,27 +6,28 @@ from rest_framework.decorators import APIView, api_view
 
 from .models import Product, Collection
 from .serializers import ProductSerializer, CollectionSerializer
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+
 from django.db.models import Count
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 
 
 # Create your views here.
-class ProductList(ListAPIView):
+class ProductViewSet(ReadOnlyModelViewSet):
     queryset = Product.objects.all()
-    serializer_class = ProductSerializer
-class ProductDetail(RetrieveAPIView):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
 
 
 
-class CollectionList(ListAPIView):
-    queryset = Collection.objects.prefetch_related('products').annotate(product_count= Count('products')).all()
+class CollectionViewSet(ReadOnlyModelViewSet):
     serializer_class = CollectionSerializer
 
-class CollectionDetail(RetrieveAPIView):
-    queryset = Collection.objects.all()
-    serializer_class = CollectionSerializer
+    def get_queryset(self):
+        if self.action == 'list':
+            return Collection.objects.prefetch_related('products').annotate(
+                product_count=Count('products'))
+        return Collection.objects.all()
+
+
+
 
 
