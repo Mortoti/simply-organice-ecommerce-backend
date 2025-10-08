@@ -18,6 +18,7 @@ class CollectionAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'is_available')
     list_filter = ('is_available',)
+    list_editable = ('price', 'is_available')
     autocomplete_fields = ('collection',)
     search_fields = ('name__istartswith',)
 @admin.register(models.Order)
