@@ -5,9 +5,12 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import Product, Collection
+
 from .serializers import ProductSerializer, CollectionSerializer
 
 from .filters import ProductFilter
+
+from .pagination import DefaultPagination
 
 
 
@@ -20,6 +23,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
     filterset_class = ProductFilter
     search_fields = ['name', 'description']
     ordering_fields = ['price']
+    pagination_class = DefaultPagination
 
 
 class CollectionViewSet(ReadOnlyModelViewSet):
