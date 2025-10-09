@@ -2,7 +2,7 @@ from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import Product, Collection
 from .serializers import ProductSerializer, CollectionSerializer
@@ -16,9 +16,10 @@ from .filters import ProductFilter
 class ProductViewSet(ReadOnlyModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductFilter
     search_fields = ['name', 'description']
+    ordering_fields = ['price']
 
 
 class CollectionViewSet(ReadOnlyModelViewSet):
