@@ -1,16 +1,14 @@
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
+from django.db.models import Count
+from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework.response import Response
-from rest_framework.decorators import APIView, api_view
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.filters import SearchFilter
 
 from .models import Product, Collection
 from .serializers import ProductSerializer, CollectionSerializer
 
-from django.db.models import Count
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from django_filters.rest_framework import DjangoFilterBackend
 from .filters import ProductFilter
+
 
 
 
@@ -18,9 +16,9 @@ from .filters import ProductFilter
 class ProductViewSet(ReadOnlyModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = ProductFilter
-
+    search_fields = ['name', 'description']
 
 
 class CollectionViewSet(ReadOnlyModelViewSet):
