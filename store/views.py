@@ -39,7 +39,7 @@ class CollectionViewSet(ReadOnlyModelViewSet):
         return queryset
 
 class CartViewSet(GenericViewSet, RetrieveModelMixin, CreateModelMixin):
-    queryset = Cart.objects.prefetch_related('items__products').all()
+    queryset = Cart.objects.prefetch_related('items__product').all()
     serializer_class = CartSerializer
 
 
