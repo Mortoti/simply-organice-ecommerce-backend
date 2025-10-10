@@ -1,12 +1,13 @@
 from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
+from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import Product, Collection
+from .models import Product, Collection, Cart
 
-from .serializers import ProductSerializer, CollectionSerializer
+from .serializers import ProductSerializer, CollectionSerializer, CartSerializer
 
 from .filters import ProductFilter
 
@@ -37,7 +38,9 @@ class CollectionViewSet(ReadOnlyModelViewSet):
                 product_count=Count('products'))
         return queryset
 
-
+class CartViewSet(GenericViewSet, RetrieveModelMixin, CreateModelMixin):
+    queryset = Cart.objects.prefetch_related('items__products').all()
+    serializer_class = CartSerializer
 
 
 
