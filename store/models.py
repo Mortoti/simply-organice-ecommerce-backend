@@ -1,5 +1,6 @@
 from django.db import models
 from uuid import uuid4
+from django.contrib.auth.models import User
 
 # Create your models here.
 class Branch(models.Model):
@@ -7,6 +8,12 @@ class Branch(models.Model):
     is_active = models.BooleanField(default=True)
     def __str__(self):
         return self.name
+class BranchAccount(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.branch.name}"
 class Collection(models.Model):
     name = models.CharField(max_length=100)
     def __str__(self):
