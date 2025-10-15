@@ -5,9 +5,9 @@ from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelV
 from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import Product, Collection, Cart
+from .models import Product, Collection, Cart, CartItem
 
-from .serializers import ProductSerializer, CollectionSerializer, CartSerializer
+from .serializers import ProductSerializer, CollectionSerializer, CartSerializer, CartItemSerializer
 
 from .filters import ProductFilter
 
@@ -42,5 +42,8 @@ class CartViewSet(GenericViewSet, RetrieveModelMixin,CreateModelMixin, DestroyMo
     queryset = Cart.objects.prefetch_related('items__product').all()
     serializer_class = CartSerializer
 
-
+class CartItemViewSet(ModelViewSet):
+    serializer_class = CartItemSerializer
+    def get_queryset(self):
+        return CartItem.objects.filter(cart_id = self.kwargs['cart_pk'])
 
