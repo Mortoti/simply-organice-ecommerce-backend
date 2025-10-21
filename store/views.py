@@ -7,7 +7,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import Product, Collection, Cart, CartItem
 
-from .serializers import ProductSerializer, CollectionSerializer, CartSerializer, CartItemSerializer, AddCartItemSerializer
+from .serializers import ProductSerializer, CollectionSerializer, CartSerializer, CartItemSerializer, AddCartItemSerializer, UpdateCartItemSerializer
 
 from .filters import ProductFilter
 
@@ -43,9 +43,12 @@ class CartViewSet(GenericViewSet, RetrieveModelMixin,CreateModelMixin, DestroyMo
     serializer_class = CartSerializer
 
 class CartItemViewSet(ModelViewSet):
+    http_method_names = ['get', 'post', 'patch']
     def get_serializer_class(self):
         if self.request.method == "POST":
             return AddCartItemSerializer
+        elif self.request.method == "PATCH":
+            return UpdateCartItemSerializer
         else:
             return CartItemSerializer
 
