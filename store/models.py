@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from uuid import uuid4
 from django.contrib.auth.models import User
@@ -60,7 +61,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    quantity = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)] )
     price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10, default=0)
 
     def __str__(self):
@@ -72,7 +73,9 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
     class Meta:
         unique_together = [['cart', 'product']]
 
