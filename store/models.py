@@ -1,6 +1,7 @@
 from django.core.validators import MinValueValidator
 from django.db import models
 from uuid import uuid4
+from django.contrib import admin
 
 from django.conf import settings
 
@@ -30,18 +31,20 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 class Customer(models.Model):
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
     phone = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
-
-
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    @admin.display(ordering='user__first_name')
+    def first_name(self):
+        return self.user.first_name
+    @admin.display(ordering='user__last_name')
+    def last_name(self):
+        return self.user.last_name
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+        return f'{self.user.first_name} {self.user.last_name}'
 
     class Meta:
-        ordering = ['first_name', 'last_name']
+        ordering = ['user__first_name', 'user__last_name']
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     STATUS_PENDING = 'Pending'
@@ -71,6 +74,10 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=25, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
+    class Meta:
+        permissions = [
+            ('cancel_order', 'Can cancel order')
+        ]
     def __str__(self):
         return  f'Order {self.pk} - {self.recipient_name}'
 class OrderItem(models.Model):
