@@ -21,5 +21,7 @@ admin.site.site_header = 'Simply Organice'
 admin.site.site_title = 'Admin Page'
 urlpatterns = [
     path('admin/', admin.site.urls),
-path('store/', include('store.urls')),
+    path('store/', include('store.urls')),
+    path('auth/', include('djoser.urls')),
+    path('auth/', include('djoser.urls.jwt')),
 ]
