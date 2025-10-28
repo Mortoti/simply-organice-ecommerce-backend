@@ -2,12 +2,12 @@ from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
-from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin
+from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin, UpdateModelMixin
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import Product, Collection, Cart, CartItem
+from .models import Product, Collection, Cart, CartItem, Customer
 
-from .serializers import ProductSerializer, CollectionSerializer, CartSerializer, CartItemSerializer, AddCartItemSerializer, UpdateCartItemSerializer
+from .serializers import ProductSerializer, CollectionSerializer, CartSerializer, CartItemSerializer, AddCartItemSerializer, UpdateCartItemSerializer, CustomerSerializer
 
 from .filters import ProductFilter
 
@@ -57,4 +57,10 @@ class CartItemViewSet(ModelViewSet):
 
     def get_serializer_context(self):
         return {'cart_id': self.kwargs['cart_pk']}
+
+class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
+    queryset = Customer.objects.all()
+    serializer_class = CustomerSerializer
+
+
 
