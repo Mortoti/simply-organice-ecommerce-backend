@@ -45,6 +45,9 @@ class Customer(models.Model):
 
     class Meta:
         ordering = ['user__first_name', 'user__last_name']
+        permissions = [
+            ('view_history', 'Can view history')
+        ]
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     STATUS_PENDING = 'Pending'
