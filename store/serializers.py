@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch
+from django.db import transaction
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -94,15 +95,27 @@ class CreateOrderSerializer(serializers.Serializer):
     )
 
     def save(self, **kwargs):
-        print(self.validated_data['cart_id'])
-        print(self.context['user_id'])
-        (customer, created) = Customer.objects.get_or_create(user_id = self.context['user_id'])
-        order = Order.objects.create(
-            customer=customer,
-            recipient_name=self.validated_data['recipient_name'],
-            recipient_number=self.validated_data['recipient_number'],
-            recipient_address=self.validated_data['recipient_address'],
-            branch=self.validated_data['branch']
-            # The other fields (status, payment_status) use their
-            # default='Pending' values from your model.
-        )
+        with transaction.atomic():
+            cart_id = self.validated_data['cart_id']
+            (customer, created) = Customer.objects.get_or_create(user_id = self.context['user_id'])
+            order = Order.objects.create(
+                customer=customer,
+                recipient_name=self.validated_data['recipient_name'],
+                recipient_number=self.validated_data['recipient_number'],
+                recipient_address=self.validated_data['recipient_address'],
+                branch=self.validated_data['branch']
+
+            )
+            cart_items = CartItem.objects.select_related('product').filter(cart_id = cart_id)
+
+            order_items =[
+                OrderItem(
+                    order= order,
+                    product = item.product,
+                    price_at_purchase = item.product.price,
+                    quantity = item.quantity
+                )for item in cart_items
+            ]
+
+            OrderItem.objects.bulk_create(order_items)
+            Cart.objects.filter(pk=cart_id).delete()
