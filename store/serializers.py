@@ -70,8 +70,15 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = ['id', 'user_id', 'phone', 'birth_date']
 
-class OrderSerializer(serializers.ModelSerializer):
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = SimpleProductSerializer()
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'price_at_purchase', 'product', 'quantity']
 
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True)
     class Meta:
         model = Order
-        fields = ['id']
+        fields = ['id', 'customer','recipient_name', 'items', 'recipient_number', 'recipient_address', 'branch', 'status', 'payment_status']
