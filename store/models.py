@@ -68,8 +68,7 @@ class Order(models.Model):
         (PAYMENT_COMPLETED, 'Completed'),
         (PAYMENT_FAILED, 'Failed'),
     )
-    customer_name = models.CharField(max_length=100)
-    customer_number = models.CharField(max_length=15)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
     recipient_name = models.CharField(max_length=100)
     recipient_number = models.CharField(max_length=15)
     recipient_address = models.TextField()

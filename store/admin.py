@@ -41,7 +41,6 @@ class OrderItemInline(admin.TabularInline):
 @admin.register(models.Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
-        'customer_name',
         'recipient_name',
         'recipient_number',
         'recipient_address',
@@ -50,7 +49,7 @@ class OrderAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ('branch',)
     list_filter = ('status',)
-    search_fields = ('customer_name__istartswith', 'recipient_name__istartswith',)
+    search_fields = ('recipient_name__istartswith',)
     list_editable = ('status',)
     inlines = [OrderItemInline]
 
