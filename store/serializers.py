@@ -93,7 +93,12 @@ class CreateOrderSerializer(serializers.Serializer):
     branch = serializers.PrimaryKeyRelatedField(
         queryset=Branch.objects.all()
     )
-
+    def validate_cart_id(self, cart_id):
+        if not Cart.objects.filter(pk = cart_id).exists():
+            raise serializers.ValidationError("No cart with the given ID was found")
+        elif CartItem.objects.filter(pk = cart_id).count()== 0:
+            raise serializers.ValidationError("The Cart is Empty")
+        return cart_id
     def save(self, **kwargs):
         with transaction.atomic():
             cart_id = self.validated_data['cart_id']
