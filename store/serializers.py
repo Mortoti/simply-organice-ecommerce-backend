@@ -84,7 +84,10 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['id', 'customer','recipient_name', 'items', 'recipient_number', 'recipient_address', 'branch', 'status', 'payment_status']
 
-
+class UpdateOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['payment_status', 'status']
 class CreateOrderSerializer(serializers.Serializer):
     cart_id = serializers.UUIDField()
     recipient_name = serializers.CharField(max_length=100)
