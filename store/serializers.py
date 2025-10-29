@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order
+from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -82,3 +82,27 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'customer','recipient_name', 'items', 'recipient_number', 'recipient_address', 'branch', 'status', 'payment_status']
+
+
+class CreateOrderSerializer(serializers.Serializer):
+    cart_id = serializers.UUIDField()
+    recipient_name = serializers.CharField(max_length=100)
+    recipient_number = serializers.CharField(max_length=15)
+    recipient_address = serializers.CharField()
+    branch = serializers.PrimaryKeyRelatedField(
+        queryset=Branch.objects.all()
+    )
+
+    def save(self, **kwargs):
+        print(self.validated_data['cart_id'])
+        print(self.context['user_id'])
+        (customer, created) = Customer.objects.get_or_create(user_id = self.context['user_id'])
+        order = Order.objects.create(
+            customer=customer,
+            recipient_name=self.validated_data['recipient_name'],
+            recipient_number=self.validated_data['recipient_number'],
+            recipient_address=self.validated_data['recipient_address'],
+            branch=self.validated_data['branch']
+            # The other fields (status, payment_status) use their
+            # default='Pending' values from your model.
+        )
