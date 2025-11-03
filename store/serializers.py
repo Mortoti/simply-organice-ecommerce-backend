@@ -1,13 +1,18 @@
 from rest_framework import serializers
-from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch
+from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch, ProductImage
 from django.db import transaction
 from .signals import order_created
 
-
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image']
 class ProductSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
     class Meta:
         model = Product
-        fields = ['name', 'price', 'description', 'image', 'is_available']
+        fields = ['name', 'price', 'description', 'images', 'is_available']
+
 class CollectionSerializer(serializers.ModelSerializer):
     products = ProductSerializer(many=True, read_only=True)
     product_count = serializers.IntegerField(read_only=True)

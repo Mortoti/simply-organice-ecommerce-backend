@@ -24,12 +24,14 @@ class Collection(models.Model):
 class Product(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
-    image = models.ImageField(upload_to='products/')
     price = models.DecimalField(decimal_places=2, max_digits=10, default=0)
     is_available = models.BooleanField()
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='products')
     def __str__(self):
         return self.name
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='products/')
 class Customer(models.Model):
     phone = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
