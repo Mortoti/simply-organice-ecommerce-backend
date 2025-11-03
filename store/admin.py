@@ -22,10 +22,20 @@ class CollectionAdmin(admin.ModelAdmin):
     list_filter = ('name',)
     search_fields = ('name__istartswith',)
     list_per_page = 12
+
+class ProductImageInline(admin.TabularInline):
+    model = models.ProductImage
+    readonly_fields = ['thumbnail']
+    def thumbnail(self, instance):
+        if instance.image.name != '':
+            return format_html(f'<img src="{instance.image.url}" style="width: 100px; border-radius: 5px;" />')
+        return ''
+
 @admin.register(models.Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'is_available')
     list_filter = ('is_available',)
+    inlines = [ProductImageInline]
     list_editable = ('price', 'is_available')
     autocomplete_fields = ('collection',)
     search_fields = ('name__istartswith',)
