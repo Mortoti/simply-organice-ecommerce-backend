@@ -1,73 +1,105 @@
-# Simply Organice - E-Commerce Backend
+# 🛍️ Simply Organice – E-Commerce Backend
 
-## Description
-Simply Organice is a Django REST Framework backend for a multi-branch e-commerce platform. It handles products, collections, orders, and branch-specific sales for Accra and Kumasi branches. This backend serves as the core system for managing products, orders, and branch-specific operations.
+## Overview
+**Simply Organice** is a Django REST Framework backend for a multi-branch e-commerce platform.
+It powers product management, collections, orders, and branch-specific operations for **Accra** and **Kumasi** branches.
+Now enhanced with **JWT Authentication**, the system ensures secure access for users and administrators.
+Users **must log in before placing orders**.
 
-## Technologies Used
-- Python 3.x
-- Django
-- Django REST Framework
-- SQLite (default) or PostgreSQL
-- Pillow (for handling product images)
-- Django CORS Headers (for frontend integration)
+---
 
-## Features
-- Multi-branch management (Accra & Kumasi)
-- Product collections and categories
-- Product CRUD with images and availability
-- Order creation capturing both customer and recipient details
-- Order items linking multiple products to a single order
-- Branch-specific order filtering for admins
-- Superuser control over the entire system
+## 🧰 Tech Stack
+- **Python 3.x**
+- **Django**
+- **Django REST Framework (DRF)**
+- **Simple JWT** (for authentication)
+- **SQLite / PostgreSQL**
+- **Pillow** (for image handling)
+- **Django CORS Headers** (for frontend integration)
 
-## Setup Instructions
-1. Clone the repository:
-   git clone <your-repo-url>
-   cd ecommerce-backend
+---
 
-2. Create and activate virtual environment:
-   python -m venv venv
-   # Windows
-   venv\Scripts\activate
-   # Mac/Linux
-   source venv/bin/activate
+## 🚀 Core Features
+- 🔐 **JWT Authentication** for secure login and API access
+- 🏬 **Multi-branch management** (Accra & Kumasi)
+- 🗂️ **Collections & categories** for products
+- 🛒 **Product CRUD** with image upload and availability control
+- 📦 **Order creation** (only for authenticated users)
+- 🔗 **Order items** linking multiple products to a single order
+- 📍 **Branch-specific order visibility** for admins
+- 👑 **Superuser control** across all branches and operations
 
-3. Install dependencies:
-   pip install -r requirements.txt
+---
 
-4. Apply migrations and create superuser:
-   python manage.py migrate
-   python manage.py createsuperuser
+## ⚙️ Setup Instructions
 
-5. Run development server:
-   python manage.py runserver
+1.  **Clone the repository**
+    ```bash
+    git clone <your-repo-url>
+    cd ecommerce-backend
+    ```
 
-6. Access admin panel:
-   http://127.0.0.1:8000/admin/
+2.  **Create and activate a virtual environment**
+    ```bash
+    python -m venv venv
+    # Windows
+    venv\Scripts\activate
+    # macOS / Linux
+    source venv/bin/activate
+    ```
 
-## Models Overview
-### Branch
-Represents a physical branch (e.g., Accra, Kumasi). Fields: name
+3.  **Install dependencies**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-### Collection
-Represents product categories (Cakes, Watches, etc.). Fields: name
+4.  **Apply migrations and create superuser**
+    ```bash
+    python manage.py migrate
+    python manage.py createsuperuser
+    ```
 
-### Product
-Individual products under a collection. Fields: collection (FK), name, description, price, image, availability
+5.  **Run the development server**
+    ```bash
+    python manage.py runserver
+    ```
 
-### Order
-Captures customer and recipient details along with branch and status. Fields: branch (FK), customer_name, customer_phone, recipient_name, recipient_phone, delivery_address, status, created_at
+6.  **Access the admin panel**
+    URL: `http://127.0.0.1:8000/admin/`
 
-### OrderItem
-Links products to orders. Fields: order (FK), product (FK), quantity, price_at_purchase
+---
 
-## Usage Notes
-- No customer login is required; checkout captures customer and recipient info directly.
-- Superuser has full control over branches, products, collections, and orders.
-- Branch admins can only see their own branch’s orders.
+## 🧩 Models Overview
 
-## Future Improvements
-- Payment gateway integration
-- Advanced order status tracking and notifications
-- Frontend dashboard for branch admins
-- Analytics for sales per branch and product
+**Branch**
+* Represents a physical branch location (e.g., Accra, Kumasi).
+* Fields: `name`
+
+**Collection**
+* Represents product categories (e.g., Cakes, Watches, etc.).
+* Fields: `name`
+
+**Product**
+* Individual products under a collection.
+* Fields: `collection` (FK), `name`, `description`, `price`, `image`, `availability`
+
+**Order**
+* Captures order details tied to authenticated users, including customer and recipient info.
+* Fields: `user` (FK), `branch` (FK), `customer_name`, `customer_phone`, `recipient_name`, `recipient_phone`, `delivery_address`, `status`, `created_at`
+
+**OrderItem**
+* Links products to specific orders.
+* Fields: `order` (FK), `product` (FK), `quantity`, `price_at_purchase`
+
+---
+
+## 🔑 Authentication (JWT)
+All authenticated routes require a valid JWT token.
+
+**Endpoints**
+* `POST /api/token/` → Obtain access and refresh tokens
+* `POST /api/token/refresh/` → Refresh access token
+
+**Header Format:**
+```makefile
+Authorization: Bearer <access_token>
