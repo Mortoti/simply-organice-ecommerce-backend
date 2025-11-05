@@ -171,7 +171,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8001'
 ]
 
-# In settings.py
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'localhost'
@@ -179,3 +179,9 @@ EMAIL_PORT = 2525
 EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = ''
 DEFAULT_FROM_EMAIL = 'mortoti.dev@gmail.com'
+
+
+
+# --- CELERY SETTINGS ---
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
