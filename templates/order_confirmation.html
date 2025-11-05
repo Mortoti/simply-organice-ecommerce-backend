@@ -4,15 +4,70 @@
     <meta charset="UTF-8">
     <title>Order Confirmation</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
 
-    <h2>Hi {{ customer_name }}!</h2>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+        <tr>
+            <td align="center">
 
-    <p>Thank you for your order with Simply Organice.</p>
-    <p>We've received your order (ID: {{ order_id }}) and are getting it ready.</p>
+                <table width="600" border="0" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
 
-    <p>Best,</p>
-    <p>The Simply Organice Team</p>
+                    <tr>
+                        <td align="center" style="padding: 40px 0 30px 0; border-bottom: 1px solid #eeeeee;">
+                            <h1 style="color: #333; margin: 0; font-size: 28px;">Simply Organice</h1>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 40px 30px 40px 30px; color: #555555; font-size: 16px; line-height: 1.6;">
+
+                            <h2 style="color: #333333; margin-top: 0;">Hi {{ customer_name }}!</h2>
+
+                            <p>Thank you for your order! We're excited to get it ready for you. We'll send you another email as soon as it ships.</p>
+
+                            <p style="font-size: 18px; color: #333;"><b>Order ID: {{ order_id }}</b></p>
+
+                            <p style="color: #333; border-top: 1px solid #eeeeee; padding-top: 20px; margin-top: 20px;">
+                                <b>Shipping To:</b> {{ recipient_name }}
+                            </p>
+
+                            <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 30px 0;">
+
+                            <h3 style="color: #333; margin-top: 0;">Your Order:</h3>
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="font-size: 14px;">
+                                <thead>
+                                    <tr style="text-align: left; border-bottom: 1px solid #dddddd;">
+                                        <th style="padding: 8px 0;">Product</th>
+                                        <th style="padding: 8px 0;">Quantity</th>
+                                        <th style="padding: 8px 0;" align="right">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in order_items %}
+                                    <tr style="border-bottom: 1px solid #eeeeee;">
+                                        <td style="padding: 12px 0;">{{ item.product.name }}</td>
+                                        <td style="padding: 12px 0;">{{ item.quantity }}</td>
+                                        <td style="padding: 12px 0;" align="right">${{ item.price_at_purchase }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 30px 30px 30px 30px; background-color: #f9f9f9; border-top: 1px solid #eeeeee;">
+                            <p style="color: #888888; font-size: 12px; margin: 0;">
+                                &copy; 2025 Simply Organice. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
 
 </body>
 </html>

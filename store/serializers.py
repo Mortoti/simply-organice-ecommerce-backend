@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch, ProductImage
 from django.db import transaction
-from .signals import order_created
+from .signals import order_created, order_created
 
 class ProductImageSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
@@ -108,7 +108,7 @@ class CreateOrderSerializer(serializers.Serializer):
     def validate_cart_id(self, cart_id):
         if not Cart.objects.filter(pk = cart_id).exists():
             raise serializers.ValidationError("No cart with the given ID was found")
-        elif CartItem.objects.filter(pk = cart_id).count()== 0:
+        elif CartItem.objects.filter(cart_id = cart_id).count()== 0:
             raise serializers.ValidationError("The Cart is Empty")
         return cart_id
     def save(self, **kwargs):
