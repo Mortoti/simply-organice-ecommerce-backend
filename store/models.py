@@ -81,6 +81,7 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
     paystack_ref = models.CharField(max_length=100, blank=True, null=True)
+    paystack_access_code = models.CharField(max_length=100, blank=True, null=True)
     class Meta:
         permissions = [
             ('cancel_order', 'Can cancel order')

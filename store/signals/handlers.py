@@ -16,13 +16,13 @@ def create_customer_for_new_user(sender, instance, created, **kwargs):
         Customer.objects.create(user=instance)
 
 #
-# SIGNAL 2: This sends the new, simplified task.
+# SIGNAL 2: TEMPORARILY DISABLED - Enable when Redis is running
 #
-@receiver(order_created)
-def send_confirmation_on_order_create(sender, order, **kwargs):
-    """
-    Listens for the 'order_created' signal and just passes the
-    new order's ID to the Celery task.
-    """
-    # All we do is send the ID. The task will handle the rest.
-    send_email_task.delay(order_id=order.id)
+# @receiver(order_created)
+# def send_confirmation_on_order_create(sender, order, **kwargs):
+#     """
+#     Listens for the 'order_created' signal and just passes the
+#     new order's ID to the Celery task.
+#     """
+#     # All we do is send the ID. The task will handle the rest.
+#     send_email_task.delay(order_id=order.id)

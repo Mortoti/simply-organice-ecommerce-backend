@@ -65,38 +65,109 @@ class ProductAdmin(admin.ModelAdmin):
 
 class OrderItemInline(admin.TabularInline):
     model = models.OrderItem
-    min_num = 1
-    max_num = 10
     extra = 0
     autocomplete_fields = ('product',)
+    readonly_fields = ('product', 'quantity', 'price_at_purchase')
+
+    def has_add_permission(self, request, obj=None):
+        """Allow adding items only when creating a new order"""
+        return obj is None
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deleting items from existing orders"""
+        return obj is None
+
+    def has_change_permission(self, request, obj=None):
+        """Prevent editing items in existing orders"""
+        return obj is None
 
 
 @admin.register(models.Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
+        'id',
         'recipient_name',
         'recipient_number',
         'recipient_address',
-        'status',
+        'colored_status',
+        'colored_payment_status',
         'branch',
     )
+
+    @admin.display(description='Status')
+    def colored_status(self, obj):
+        colors = {
+            'Pending': 'orange',
+            'Shipped': 'blue',
+            'Completed': 'green',
+            'Cancelled': 'red',
+        }
+        color = colors.get(obj.status, 'gray')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.status
+        )
+
+    @admin.display(description='Payment')
+    def colored_payment_status(self, obj):
+        colors = {
+            'Pending': 'orange',
+            'Completed': 'green',
+            'Failed': 'red',
+        }
+        color = colors.get(obj.payment_status, 'gray')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.payment_status
+        )
+
     autocomplete_fields = ('branch',)
-    list_filter = ('status',)
-    search_fields = ('recipient_name__istartswith',)
-    list_editable = ('status',)
+    list_filter = ('status', 'payment_status', 'created_at', 'branch')
+    search_fields = ('recipient_name__istartswith', 'id', 'paystack_ref')
     inlines = [OrderItemInline]
+    list_per_page = 10
+    readonly_fields = ('paystack_ref', 'paystack_access_code', 'created_at')
+
+    # Show these fields in the detail view
+    fieldsets = (
+        ('Order Information', {
+            'fields': ('customer', 'recipient_name', 'recipient_number', 'recipient_address', 'branch')
+        }),
+        ('Status', {
+            'fields': ('status', 'payment_status')
+        }),
+        ('Payment Details', {
+            'fields': ('paystack_ref', 'paystack_access_code', 'created_at'),
+            'classes': ('collapse',)  # Make this section collapsible
+        }),
+    )
 
     def get_queryset(self, request):
+        """
+        Filter orders based on:
+        1. Branch (if user is not superuser)
+        2. Payment status (show only completed payments by default)
+        """
         qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        try:
-            branch_account = models.BranchAccount.objects.get(user=request.user)
-            return qs.filter(branch=branch_account.branch)
-        except models.BranchAccount.DoesNotExist:
-            return qs.none()
 
-    # --- THIS IS THE CORRECTED save_model METHOD ---
+        # Branch filtering (your existing logic)
+        if not request.user.is_superuser:
+            try:
+                branch_account = models.BranchAccount.objects.get(user=request.user)
+                qs = qs.filter(branch=branch_account.branch)
+            except models.BranchAccount.DoesNotExist:
+                return qs.none()
+
+        # Payment status filtering - show only paid orders by default
+        # Unless the admin has specifically filtered by payment_status
+        if 'payment_status' not in request.GET:
+            # No payment_status filter selected, so show only completed payments
+            qs = qs.filter(payment_status=models.Order.PAYMENT_COMPLETED)
+
+        return qs
+
     def save_model(self, request: HttpRequest, obj: models.Order, form: ModelForm, change: bool):
         # Your branch logic is correct
         if not request.user.is_superuser:
@@ -108,22 +179,42 @@ class OrderAdmin(admin.ModelAdmin):
 
         # This is the logic that calls the task
         if change and 'status' in form.changed_data:
-
             # Check if the status is one we want to send an email for
             if (obj.status == models.Order.STATUS_SHIPPED or
                     obj.status == models.Order.STATUS_COMPLETED):
-                # --- THIS IS THE FIX ---
-                # We only send the order ID.
-                # The task will do all the work.
-                send_email_task.delay(order_id=obj.id)
+                try:
+                    # Only send email if Redis/Celery is available
+                    send_email_task.delay(order_id=obj.id)
+                except Exception as e:
+                    # Log the error but don't block the save
+                    print(f"Failed to queue email for order {obj.id}: {str(e)}")
 
         # We call the parent save_model at the end
         super().save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        readonly.extend(['paystack_ref', 'paystack_access_code', 'payment_status', 'created_at'])
+
         if not request.user.is_superuser:
-            return ['branch']
-        return super().get_readonly_fields(request, obj)
+            readonly.append('branch')
+
+        return readonly
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Prevent deletion of orders with completed payments.
+        Only unpaid orders can be deleted, and only by superusers.
+        """
+        if obj is None:
+            return request.user.is_superuser
+
+        # Never allow deletion of paid orders
+        if obj.payment_status == models.Order.PAYMENT_COMPLETED:
+            return False
+
+        # Allow superusers to delete unpaid orders only
+        return request.user.is_superuser
 
 
 @admin.register(models.Customer)

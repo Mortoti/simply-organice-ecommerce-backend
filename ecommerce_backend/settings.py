@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-from decouple import config
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
 
@@ -185,3 +186,6 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 
 
 DEFAULT_FROM_EMAIL = 'admin@simplyorganice.com'
+
+
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
