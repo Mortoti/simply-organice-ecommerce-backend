@@ -189,3 +189,4 @@ DEFAULT_FROM_EMAIL = 'admin@simplyorganice.com'
 
 
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
+PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY')
