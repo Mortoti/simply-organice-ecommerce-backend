@@ -143,6 +143,54 @@ class OrderViewSet(ModelViewSet):
         return Order.objects.filter(customer_id=customer_id)
 
 
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+
+
+@extend_schema(
+    summary="Verify a Paystack payment transaction",
+    description="Verify if a payment was successful after the user completes payment on Paystack.",
+    parameters=[
+        OpenApiParameter(
+            name='reference',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description='The payment reference returned by Paystack during initialization'
+        ),
+    ],
+    responses={
+        200: {
+            'description': 'Payment verified successfully',
+            'example': {
+                "message": "Payment verified successfully and order updated.",
+                "order_id": 1,
+                "reference": "huqivva3ug",
+                "amount": 645.0,
+                "currency": "GHS",
+                "paid_at": "2025-11-08T11:20:06.000Z"
+            }
+        },
+        400: {
+            'description': 'Bad request - missing reference or payment failed',
+            'example': {
+                "error": "Payment reference is required."
+            }
+        },
+        403: {
+            'description': 'Forbidden - user does not own this order',
+            'example': {
+                "error": "You don't have permission to access this order."
+            }
+        },
+        404: {
+            'description': 'Order not found',
+            'example': {
+                "error": "Order not found."
+            }
+        }
+    }
+)
 class VerifyPaymentView(APIView):
     """
     Verify a Paystack payment transaction.
@@ -277,7 +325,7 @@ class VerifyPaymentView(APIView):
             )
 
         else:
-
+            # Handle other statuses like 'abandoned', 'reversed', etc.
             return Response(
                 {
                     "error": f"Payment status is {payment_status}",
