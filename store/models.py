@@ -82,6 +82,9 @@ class Order(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
     paystack_ref = models.CharField(max_length=100, blank=True, null=True)
     paystack_access_code = models.CharField(max_length=100, blank=True, null=True)
+    secret_message = models.TextField(blank=True, null=True, help_text="Private message from customer")
+    delivery_date = models.DateField(blank=True, null=True, help_text="Preferred delivery date")
+    delivery_time = models.TimeField(blank=True, null=True, help_text="Preferred delivery time")
     class Meta:
         permissions = [
             ('cancel_order', 'Can cancel order')
