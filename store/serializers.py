@@ -168,3 +168,9 @@ class CreateOrderSerializer(serializers.Serializer):
             order_created.send_robust(self.__class__, order=order)
 
             return order
+
+class BranchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Branch
+        fields = ['id', 'name', 'is_active']
+        read_only_fields = ['id']
