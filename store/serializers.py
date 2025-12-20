@@ -12,9 +12,10 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image']
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
+    collection = serializers.StringRelatedField()
     class Meta:
         model = Product
-        fields = ['name', 'price', 'description', 'images', 'is_available']
+        fields = ['id','name', 'price', 'description', 'images', 'is_available', 'collection']
 
 class CollectionSerializer(serializers.ModelSerializer):
     products = ProductSerializer(many=True, read_only=True)
@@ -80,8 +81,10 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = ['id', 'user_id', 'phone', 'birth_date']
 
+
 class OrderItemSerializer(serializers.ModelSerializer):
     product = SimpleProductSerializer()
+
     class Meta:
         model = OrderItem
         fields = ['id', 'price_at_purchase', 'product', 'quantity']
@@ -89,49 +92,74 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
+
     class Meta:
         model = Order
-        fields = ['id', 'customer','recipient_name', 'items', 'recipient_number', 'recipient_address', 'branch', 'status', 'payment_status']
+        fields = [
+            'id',
+            'customer',
+            'recipient_name',
+            'recipient_number',
+            'recipient_address',
+            'branch',
+            'status',
+            'payment_status',
+            'created_at',
+            'paystack_ref',
+            'paystack_access_code',
+            'secret_message',
+            'delivery_date',
+            'delivery_time',
+            'items'
+        ]
+
 
 class UpdateOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['payment_status', 'status']
+
+
 class CreateOrderSerializer(serializers.Serializer):
     cart_id = serializers.UUIDField()
     recipient_name = serializers.CharField(max_length=100)
     recipient_number = serializers.CharField(max_length=15)
     recipient_address = serializers.CharField()
-    branch = serializers.PrimaryKeyRelatedField(
-        queryset=Branch.objects.all()
-    )
+    branch = serializers.PrimaryKeyRelatedField(queryset=Branch.objects.all())
+    secret_message = serializers.CharField(required=False, allow_blank=True)
+    delivery_date = serializers.DateField(required=False, allow_null=True)
+    delivery_time = serializers.TimeField(required=False, allow_null=True)
+
     def validate_cart_id(self, cart_id):
-        if not Cart.objects.filter(pk = cart_id).exists():
+        if not Cart.objects.filter(pk=cart_id).exists():
             raise serializers.ValidationError("No cart with the given ID was found")
-        elif CartItem.objects.filter(cart_id = cart_id).count()== 0:
+        elif CartItem.objects.filter(cart_id=cart_id).count() == 0:
             raise serializers.ValidationError("The Cart is Empty")
         return cart_id
+
     def save(self, **kwargs):
         with transaction.atomic():
             cart_id = self.validated_data['cart_id']
-            customer = Customer.objects.get(user_id = self.context['user_id'])
+            customer = Customer.objects.get(user_id=self.context['user_id'])
             order = Order.objects.create(
                 customer=customer,
                 recipient_name=self.validated_data['recipient_name'],
                 recipient_number=self.validated_data['recipient_number'],
                 recipient_address=self.validated_data['recipient_address'],
-                branch=self.validated_data['branch']
-
+                branch=self.validated_data['branch'],
+                secret_message=self.validated_data.get('secret_message', ''),
+                delivery_date=self.validated_data.get('delivery_date'),
+                delivery_time=self.validated_data.get('delivery_time')
             )
-            cart_items = CartItem.objects.select_related('product').filter(cart_id = cart_id)
+            cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)
 
-            order_items =[
+            order_items = [
                 OrderItem(
-                    order= order,
-                    product = item.product,
-                    price_at_purchase = item.product.price,
-                    quantity = item.quantity
-                )for item in cart_items
+                    order=order,
+                    product=item.product,
+                    price_at_purchase=item.product.price,
+                    quantity=item.quantity
+                ) for item in cart_items
             ]
 
             OrderItem.objects.bulk_create(order_items)
