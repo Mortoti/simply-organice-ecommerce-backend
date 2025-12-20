@@ -113,6 +113,7 @@ class OrderItem(models.Model):
         return f'Order {self.pk} - {self.product.name}'
 class Cart(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)  # ADD THIS
     created_at = models.DateTimeField(auto_now_add=True)
 
 class CartItem(models.Model):
