@@ -25,9 +25,20 @@ class CollectionSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'products', 'product_count']
 
 class SimpleProductSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price']
+        fields = ['id', 'name', 'price', 'image']
+
+    def get_image(self, obj):
+        # Assuming your Product model has an image field or related images
+        if hasattr(obj, 'images') and obj.images.exists():
+            first_image = obj.images.first()
+            if first_image and first_image.image:
+                return first_image.image.url
+        elif hasattr(obj, 'image') and obj.image:
+            return obj.image.url
+        return None
 class CartItemSerializer(serializers.ModelSerializer):
     total_price = serializers.SerializerMethodField()
     product = SimpleProductSerializer(read_only=True)

@@ -96,6 +96,11 @@ class Order(models.Model):
         permissions = [
             ('cancel_order', 'Can cancel order')
         ]
+        indexes = [
+            models.Index(fields=['customer', 'created_at']),
+            models.Index(fields=['status']),
+            models.Index(fields=['payment_status']),
+        ]
     def __str__(self):
         return  f'Order {self.pk} - {self.recipient_name}'
 class OrderItem(models.Model):
