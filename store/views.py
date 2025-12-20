@@ -48,8 +48,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
     pagination_class = DefaultPagination
 
     def get_queryset(self):
-        # Only return available products for non-staff users
-        queryset = Product.objects.prefetch_related('images')
+        queryset = Product.objects.select_related('collection').prefetch_related('images')
 
         if not self.request.user.is_staff:
             queryset = queryset.filter(is_available=True)
