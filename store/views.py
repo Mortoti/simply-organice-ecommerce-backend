@@ -36,8 +36,9 @@ class BranchViewSet(ReadOnlyModelViewSet):
     def get_queryset(self):
         # Only return active branches
         return Branch.objects.filter(is_active=True)
+
+
 class ProductViewSet(ReadOnlyModelViewSet):
-    queryset = Product.objects.prefetch_related('images').all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductFilter
@@ -46,7 +47,14 @@ class ProductViewSet(ReadOnlyModelViewSet):
     ordering_fields = ['price']
     pagination_class = DefaultPagination
 
+    def get_queryset(self):
+        # Only return available products for non-staff users
+        queryset = Product.objects.prefetch_related('images')
 
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(is_available=True)
+
+        return queryset
 class ProductImageViewSet(ModelViewSet):
     serializer_class = ProductImageSerializer
 
