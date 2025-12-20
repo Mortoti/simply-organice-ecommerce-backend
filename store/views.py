@@ -126,7 +126,7 @@ class OrderViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
         serializer = OrderSerializer(order)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)  # ✅ Added proper status code
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -138,10 +138,13 @@ class OrderViewSet(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_staff:
-            return Order.objects.all()
-        customer_id = Customer.objects.only('id').get(user_id=user.id)
-        return Order.objects.filter(customer_id=customer_id)
+            return Order.objects.prefetch_related('items__product').all()  # ✅ Added prefetch for performance
 
+        try:
+            customer_id = Customer.objects.only('id').get(user_id=user.id)
+            return Order.objects.prefetch_related('items__product').filter(customer_id=customer_id)  # ✅ Added prefetch
+        except Customer.DoesNotExist:
+            return Order.objects.none()  # ✅ Handle case where customer doesn't exist
 
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
