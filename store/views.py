@@ -17,11 +17,11 @@ import hashlib
 from decimal import Decimal
 from .paystack import PaystackAPI
 
-from .models import Product, Collection, Cart, CartItem, Customer, Order, ProductImage
+from .models import Product, Collection, Cart, CartItem, Customer, Order, ProductImage, Branch
 
 from .serializers import ProductSerializer, CollectionSerializer, CartSerializer, CartItemSerializer, \
     AddCartItemSerializer, UpdateCartItemSerializer, CustomerSerializer, OrderSerializer, CreateOrderSerializer, \
-    UpdateOrderSerializer, ProductImageSerializer
+    UpdateOrderSerializer, ProductImageSerializer, BranchSerializer
 
 from .filters import ProductFilter
 from .permissions import IsAdminOrReadOnly, ViewCustomerHistoryPermissions
@@ -30,6 +30,12 @@ from .pagination import DefaultPagination
 
 
 # Create your views here.
+class BranchViewSet(ReadOnlyModelViewSet):
+    serializer_class = BranchSerializer
+
+    def get_queryset(self):
+        # Only return active branches
+        return Branch.objects.filter(is_active=True)
 class ProductViewSet(ReadOnlyModelViewSet):
     queryset = Product.objects.prefetch_related('images').all()
     serializer_class = ProductSerializer
