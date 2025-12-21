@@ -2,7 +2,7 @@ from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
-from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin
+from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin, ListModelMixin
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -77,13 +77,38 @@ class CollectionViewSet(ReadOnlyModelViewSet):
         return queryset
 
 
-class CartViewSet(GenericViewSet, RetrieveModelMixin, CreateModelMixin, DestroyModelMixin):
-    queryset = Cart.objects.prefetch_related('items__product').all()
+class CartViewSet(ModelViewSet):
     serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]  # Require login
+
+    def get_queryset(self):
+        # CRITICAL: Only return carts for the logged-in user
+        return Cart.objects.filter(user=self.request.user).prefetch_related('items__product')
+
+    def create(self, request, *args, **kwargs):
+        # Check if user already has a cart with items
+        existing_cart = Cart.objects.filter(user=request.user).first()
+
+        if existing_cart:
+            # Return existing cart instead of creating new one
+            serializer = self.get_serializer(existing_cart)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Create new cart for user
+        cart = Cart.objects.create(user=request.user)
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def list(self, request, *args, **kwargs):
+        # Return user's carts (they should only have one, but return all just in case)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class CartItemViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
+    permission_classes = [IsAuthenticated]  # Require login
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -94,11 +119,15 @@ class CartItemViewSet(ModelViewSet):
             return CartItemSerializer
 
     def get_queryset(self):
-        return CartItem.objects.filter(cart_id=self.kwargs['cart_pk']).select_related('product')
+        # Verify the cart belongs to the logged-in user
+        cart_id = self.kwargs['cart_pk']
+        if not Cart.objects.filter(id=cart_id, user=self.request.user).exists():
+            return CartItem.objects.none()  # Return empty queryset if cart doesn't belong to user
+
+        return CartItem.objects.filter(cart_id=cart_id).select_related('product')
 
     def get_serializer_context(self):
         return {'cart_id': self.kwargs['cart_pk']}
-
 
 class CustomerViewSet(ModelViewSet):
     queryset = Customer.objects.all()

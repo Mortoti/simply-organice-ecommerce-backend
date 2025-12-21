@@ -5,10 +5,10 @@ from . import views
 router = routers.DefaultRouter()
 router.register('products', views.ProductViewSet, basename='products')
 router.register('collections', views.CollectionViewSet)
-router.register('carts', views.CartViewSet)
+router.register('carts', views.CartViewSet, basename='cart')  # ADD basename='cart'
 router.register('customers', views.CustomerViewSet)
 router.register('orders', views.OrderViewSet, basename='orders')
-router.register('branches', views.BranchViewSet, basename='branches')  # ✅ Added this line
+router.register('branches', views.BranchViewSet, basename='branches')
 
 products_router = routers.NestedDefaultRouter(router, 'products', lookup='product')
 products_router.register('images', views.ProductImageViewSet, basename='product-images')

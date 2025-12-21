@@ -180,6 +180,7 @@ class OrderAdmin(admin.ModelAdmin):
         # This is the logic that calls the task
         if change and 'status' in form.changed_data:
             # Check if the status is one we want to send an email for
+            '''
             if (obj.status == models.Order.STATUS_SHIPPED or
                     obj.status == models.Order.STATUS_COMPLETED):
                 try:
@@ -188,6 +189,7 @@ class OrderAdmin(admin.ModelAdmin):
                 except Exception as e:
                     # Log the error but don't block the save
                     print(f"Failed to queue email for order {obj.id}: {str(e)}")
+            '''
 
         # We call the parent save_model at the end
         super().save_model(request, obj, form, change)

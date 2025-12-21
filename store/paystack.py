@@ -83,6 +83,7 @@ class PaystackAPI:
                 headers=cls._get_headers(),
                 timeout=10
             )
+            print(f"PAYSTACK RESPONSE: {response.text}")
 
             response_data = response.json()
 
