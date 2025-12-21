@@ -180,20 +180,18 @@ class OrderAdmin(admin.ModelAdmin):
         # This is the logic that calls the task
         if change and 'status' in form.changed_data:
             # Check if the status is one we want to send an email for
-            '''
             if (obj.status == models.Order.STATUS_SHIPPED or
-                    obj.status == models.Order.STATUS_COMPLETED):
+                    obj.status == models.Order.STATUS_COMPLETED or
+                    obj.status == models.Order.STATUS_CANCELLED):
                 try:
                     # Only send email if Redis/Celery is available
                     send_email_task.delay(order_id=obj.id)
                 except Exception as e:
                     # Log the error but don't block the save
                     print(f"Failed to queue email for order {obj.id}: {str(e)}")
-            '''
 
         # We call the parent save_model at the end
         super().save_model(request, obj, form, change)
-
     def get_readonly_fields(self, request, obj=None):
         readonly = list(super().get_readonly_fields(request, obj))
         readonly.extend(['paystack_ref', 'paystack_access_code', 'payment_status', 'created_at'])

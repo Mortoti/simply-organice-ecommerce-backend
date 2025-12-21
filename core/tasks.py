@@ -22,6 +22,9 @@ def send_email_task(order_id):
         elif order.status == Order.STATUS_COMPLETED:
             subject = f'Your Order #{order.id} is Complete!'
             template_name = 'order_completed.html'
+        elif order.status == Order.STATUS_CANCELLED:
+            subject = f'Your Order #{order.id} Has Been Cancelled'
+            template_name = 'order_cancelled.html'
         else:
             # This handles the 'Pending' case (from the signal)
             subject = f'Your Simply Organice Order #{order.id} is Confirmed!'
@@ -54,3 +57,38 @@ def send_email_task(order_id):
         return f"Error: Order {order_id} does not exist."
     except Exception as e:
         return f"Error sending email for order {order_id}: {e}"
+
+
+@shared_task
+def send_welcome_email_task(user_id):
+    """
+    A Celery task to send welcome email to new users.
+    """
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.get(id=user_id)
+
+        subject = 'Welcome to Simply Organice!'
+        template_name = 'welcome_email.html'
+
+        context = {
+            'first_name': user.first_name or user.username,
+        }
+
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [user.email]
+        html_message = render_to_string(template_name, context)
+
+        email = EmailMessage(
+            subject=subject,
+            body=html_message,
+            from_email=from_email,
+            to=recipient_list
+        )
+        email.content_subtype = 'html'
+        email.send()
+
+        return f"Welcome email sent to {user.email}"
+    except Exception as e:
+        return f"Error sending welcome email: {e}"

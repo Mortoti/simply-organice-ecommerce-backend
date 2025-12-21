@@ -14,6 +14,7 @@
 
                     <tr>
                         <td align="center" style="padding: 40px 0 30px 0; border-bottom: 1px solid #eeeeee;">
+                            <img src="https://i.ibb.co/hJVv2W9Q/logo.png" alt="Simply Organice Logo" style="width: 180px; height: auto; margin-bottom: 15px;">
                             <h1 style="color: #333; margin: 0; font-size: 28px;">Simply Organice</h1>
                         </td>
                     </tr>
@@ -47,7 +48,7 @@
                                     <tr style="border-bottom: 1px solid #eeeeee;">
                                         <td style="padding: 12px 0;">{{ item.product.name }}</td>
                                         <td style="padding: 12px 0;">{{ item.quantity }}</td>
-                                        <td style="padding: 12px 0;" align="right">${{ item.price_at_purchase }}</td>
+                                        <td style="padding: 12px 0;" align="right">GH₵{{ item.price_at_purchase|floatformat:2 }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
