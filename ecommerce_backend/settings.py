@@ -190,3 +190,14 @@ DEFAULT_FROM_EMAIL = 'admin@simplyorganice.com'
 
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY')
+
+
+DJOSER = {
+    'PASSWORD_RESET_CONFIRM_URL': '#/password/reset/confirm/{uid}/{token}',
+    'USERNAME_RESET_CONFIRM_URL': '#/username/reset/confirm/{uid}/{token}',
+    'ACTIVATION_URL': '#/activate/{uid}/{token}',
+    'SEND_ACTIVATION_EMAIL': False,
+    'TOKEN_MODEL': None,  # This is the key line - disables Token auth since you use JWT
+    'LOGOUT_ON_PASSWORD_CHANGE': False,
+    'SERIALIZERS': {},
+}
