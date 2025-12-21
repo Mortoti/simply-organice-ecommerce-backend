@@ -32,7 +32,8 @@ class Product(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='products')
     is_customizable = models.BooleanField(default=False)
     customization_price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
-
+    has_size_options = models.BooleanField(default=False)
+    available_sizes = models.JSONField(default=list, blank=True)
     class Meta:
         indexes = [
             models.Index(fields=['is_available']),
@@ -117,6 +118,7 @@ class OrderItem(models.Model):
     price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10, default=0)
     with_customization = models.BooleanField(default=False)
     customization_price_at_purchase = models.DecimalField(decimal_places=2, max_digits=10, default=0)
+    selected_size = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return f'Order {self.pk} - {self.product.name}'
@@ -125,15 +127,23 @@ class Cart(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)  # ADD THIS
     created_at = models.DateTimeField(auto_now_add=True)
 
+
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
-    quantity = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
-    class Meta:
-        unique_together = [['cart', 'product']]
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    with_customization = models.BooleanField(default=False)
+    selected_size = models.CharField(max_length=50, blank=True, null=True)
 
+    class Meta:
+        unique_together = [['cart', 'product', 'with_customization', 'selected_size']]
+
+    @property
+    def total_price(self):
+        base_price = self.product.price * self.quantity
+        if self.with_customization and self.product.is_customizable:
+            base_price += (self.product.customization_price * self.quantity)
+        return base_price
 
 
 
