@@ -39,7 +39,7 @@ class Product(models.Model):
             models.Index(fields=['collection']),
             models.Index(fields=['price']),
             models.Index(fields=['is_customizable']),
-            models.Index(fields=['customization_prize']),
+            models.Index(fields=['customization_price']),
         ]
 
     def __str__(self):
