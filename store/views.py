@@ -46,14 +46,12 @@ class ProductViewSet(ReadOnlyModelViewSet):
     pagination_class = DefaultPagination
 
     def get_queryset(self):
-        queryset = Product.objects.select_related('collection').prefetch_related('images')
+        queryset = Product.objects.select_related('collection').prefetch_related('images', 'sizes')
 
         if not self.request.user.is_staff:
             queryset = queryset.filter(is_available=True)
 
         return queryset
-
-
 class ProductImageViewSet(ModelViewSet):
     serializer_class = ProductImageSerializer
 
