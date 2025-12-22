@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Collection, Product, Customer, Order, OrderItem, Cart, CartItem, Branch, BranchAccount, ProductImage
+from .models import Collection, Product, Customer, Order, OrderItem, Cart, CartItem, Branch, BranchAccount, ProductImage,ProductSize
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
@@ -10,13 +10,17 @@ class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
 
+class ProductSizeInline(admin.TabularInline):
+    model = ProductSize
+    extra = 2
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['name', 'price', 'is_available', 'collection', 'is_customizable', 'customization_price', 'has_size_options']
     list_editable = ['price', 'is_available', 'is_customizable', 'customization_price', 'has_size_options']
     list_filter = ['is_available', 'collection', 'is_customizable', 'has_size_options']
     search_fields = ['name', 'description']
-    inlines = [ProductImageInline]
+    inlines = [ProductImageInline, ProductSizeInline]
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'description', 'price', 'is_available', 'collection')
@@ -25,10 +29,9 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('is_customizable', 'customization_price')
         }),
         ('Size Options', {
-            'fields': ('has_size_options', 'available_sizes')
+            'fields': ('has_size_options',)
         }),
     )
-
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
     list_display = ['first_name', 'last_name', 'phone', 'user']
