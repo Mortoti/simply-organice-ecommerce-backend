@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch, ProductImage
+from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch, ProductImage, ProductSize
 from django.db import transaction
 
 
@@ -13,14 +13,21 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image']
 
 
+class ProductSizeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductSize
+        fields = ['id', 'size_name', 'price', 'is_available']
+
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     collection = serializers.StringRelatedField()
+    sizes = ProductSizeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = ['id', 'name', 'price', 'description', 'images', 'is_available', 'collection', 'is_customizable',
-                  'customization_price', 'has_size_options', 'available_sizes']
+                  'customization_price', 'has_size_options', 'sizes']
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -34,11 +41,12 @@ class CollectionSerializer(serializers.ModelSerializer):
 
 class SimpleProductSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
+    sizes = ProductSizeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = ['id', 'name', 'price', 'image', 'is_customizable', 'customization_price', 'has_size_options',
-                  'available_sizes']
+                  'sizes']
 
     def get_image(self, obj):
         if hasattr(obj, 'images') and obj.images.exists():
@@ -59,7 +67,15 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'quantity', 'product', 'total_price', 'with_customization', 'selected_size']
 
     def get_total_price(self, cart_item):
-        base_price = cart_item.quantity * cart_item.product.price
+        if cart_item.selected_size and cart_item.product.has_size_options:
+            try:
+                size = cart_item.product.sizes.get(size_name=cart_item.selected_size)
+                base_price = cart_item.quantity * size.price
+            except ProductSize.DoesNotExist:
+                base_price = cart_item.quantity * cart_item.product.price
+        else:
+            base_price = cart_item.quantity * cart_item.product.price
+
         if cart_item.with_customization and cart_item.product.is_customizable:
             base_price += (cart_item.product.customization_price * cart_item.quantity)
         return base_price
@@ -77,7 +93,15 @@ class CartSerializer(serializers.ModelSerializer):
     def get_total_price(self, cart):
         total = 0
         for item in cart.items.all():
-            base_price = item.quantity * item.product.price
+            if item.selected_size and item.product.has_size_options:
+                try:
+                    size = item.product.sizes.get(size_name=item.selected_size)
+                    base_price = item.quantity * size.price
+                except ProductSize.DoesNotExist:
+                    base_price = item.quantity * item.product.price
+            else:
+                base_price = item.quantity * item.product.price
+
             if item.with_customization and item.product.is_customizable:
                 base_price += (item.product.customization_price * item.quantity)
             total += base_price
@@ -144,15 +168,12 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = ['id', 'user_id', 'username', 'email', 'first_name', 'last_name', 'phone', 'birth_date']
 
     def update(self, instance, validated_data):
-        # Extract nested user data
         user_data = validated_data.pop('user', {})
 
-        # Update Customer fields
         instance.phone = validated_data.get('phone', instance.phone)
         instance.birth_date = validated_data.get('birth_date', instance.birth_date)
         instance.save()
 
-        # Update User fields if provided
         if user_data:
             user = instance.user
             if 'first_name' in user_data:
@@ -236,17 +257,26 @@ class CreateOrderSerializer(serializers.Serializer):
             )
             cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)
 
-            order_items = [
-                OrderItem(
+            order_items = []
+            for item in cart_items:
+                if item.selected_size and item.product.has_size_options:
+                    try:
+                        size = item.product.sizes.get(size_name=item.selected_size)
+                        price = size.price
+                    except ProductSize.DoesNotExist:
+                        price = item.product.price
+                else:
+                    price = item.product.price
+
+                order_items.append(OrderItem(
                     order=order,
                     product=item.product,
-                    price_at_purchase=item.product.price,
+                    price_at_purchase=price,
                     quantity=item.quantity,
                     with_customization=item.with_customization,
                     customization_price_at_purchase=item.product.customization_price if item.with_customization else 0,
                     selected_size=item.selected_size
-                ) for item in cart_items
-            ]
+                ))
 
             OrderItem.objects.bulk_create(order_items)
             Cart.objects.filter(pk=cart_id).delete()
