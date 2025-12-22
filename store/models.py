@@ -33,7 +33,7 @@ class Product(models.Model):
     is_customizable = models.BooleanField(default=False)
     customization_price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     has_size_options = models.BooleanField(default=False)
-    available_sizes = models.JSONField(default=list, blank=True)
+
     class Meta:
         indexes = [
             models.Index(fields=['is_available']),
@@ -45,6 +45,24 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductSize(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='sizes')
+    size_name = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stock_quantity = models.IntegerField(default=0)
+    is_available = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ['product', 'size_name']
+        indexes = [
+            models.Index(fields=['product', 'size_name']),
+        ]
+        ordering = ['price']
+
+    def __str__(self):
+        return f"{self.product.name} - {self.size_name} (${self.price})"
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(
@@ -68,6 +86,8 @@ class Customer(models.Model):
         permissions = [
             ('view_history', 'Can view history')
         ]
+
+
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     STATUS_PENDING = 'Pending'
@@ -82,7 +102,7 @@ class Order(models.Model):
     )
     PAYMENT_PENDING = 'Pending'
     PAYMENT_COMPLETED = 'Completed'
-    PAYMENT_FAILED= 'Failed'
+    PAYMENT_FAILED = 'Failed'
     PAYMENT_STATUS_CHOICES = (
         (PAYMENT_PENDING, 'Pending'),
         (PAYMENT_COMPLETED, 'Completed'),
@@ -100,6 +120,7 @@ class Order(models.Model):
     secret_message = models.TextField(blank=True, null=True, help_text="Private message from customer")
     delivery_date = models.DateField(blank=True, null=True, help_text="Preferred delivery date")
     delivery_time = models.TimeField(blank=True, null=True, help_text="Preferred delivery time")
+
     class Meta:
         permissions = [
             ('cancel_order', 'Can cancel order')
@@ -109,8 +130,31 @@ class Order(models.Model):
             models.Index(fields=['status']),
             models.Index(fields=['payment_status']),
         ]
+
     def __str__(self):
-        return  f'Order {self.pk} - {self.recipient_name}'
+        return f'Order {self.pk} - {self.recipient_name}'
+
+    def save(self, *args, **kwargs):
+        # Check if this is an update (not a new order)
+        if self.pk:
+            # Get the old status from database
+            old_order = Order.objects.get(pk=self.pk)
+            old_status = old_order.status
+
+            # If status changed, send email
+            if old_status != self.status:
+                # Import here to avoid circular import
+                from core.tasks import send_email_task
+
+                # Save first, then send email
+                super().save(*args, **kwargs)
+
+                # Send email asynchronously using Celery
+                send_email_task.delay(self.id)
+                return
+
+        # If it's a new order or status didn't change, just save normally
+        super().save(*args, **kwargs)
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)

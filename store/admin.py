@@ -39,16 +39,37 @@ class OrderItemInline(admin.TabularInline):
     extra = 0
     readonly_fields = ['product', 'quantity', 'price_at_purchase', 'with_customization', 'customization_price_at_purchase', 'selected_size']
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['id', 'customer', 'recipient_name', 'status', 'payment_status', 'created_at', 'branch']
+    list_display = ['id', 'get_customer_name', 'recipient_name', 'status', 'payment_status', 'created_at', 'branch']
     list_filter = ['status', 'payment_status', 'created_at', 'branch']
-    search_fields = ['recipient_name', 'customer__user__first_name', 'customer__user__last_name']
-    readonly_fields = ['created_at', 'paystack_ref', 'paystack_access_code']
+    search_fields = ['recipient_name', 'customer__user__first_name', 'customer__user__last_name', 'customer__user__username', 'customer__phone']
+    readonly_fields = ['created_at', 'paystack_ref', 'paystack_access_code', 'payment_status', 'customer', 'get_customer_phone']  # Added get_customer_phone
     inlines = [OrderItemInline]
+
+    def get_customer_name(self, obj):
+        """Display customer name with fallback to username"""
+        user = obj.customer.user
+        full_name = f'{user.first_name} {user.last_name}'.strip()
+        if full_name:
+            return full_name
+        return user.username or user.email or 'No name'
+    get_customer_name.short_description = 'Customer'
+
+    def get_customer_phone(self, obj):
+        """Display customer phone number"""
+        return obj.customer.phone or 'No phone set'
+    get_customer_phone.short_description = 'Customer Phone'
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related('customer__user', 'branch')
+        return qs.filter(payment_status=Order.PAYMENT_COMPLETED)
+
     fieldsets = (
         ('Customer Information', {
-            'fields': ('customer', 'recipient_name', 'recipient_number', 'recipient_address')
+            'fields': ('customer', 'get_customer_phone', 'recipient_name', 'recipient_number', 'recipient_address')
         }),
         ('Order Details', {
             'fields': ('status', 'payment_status', 'branch', 'created_at')
@@ -60,7 +81,6 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('paystack_ref', 'paystack_access_code')
         }),
     )
-
 class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 0

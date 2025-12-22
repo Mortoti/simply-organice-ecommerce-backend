@@ -1,4 +1,3 @@
-# In core/tasks.py
 from celery import shared_task
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -8,14 +7,9 @@ from store.models import Order
 
 @shared_task
 def send_email_task(order_id):
-    """
-    A Celery task to send order-related emails.
-    It checks the order status and sends the correct template.
-    """
     try:
         order = Order.objects.get(id=order_id)
 
-        # --- THIS IS THE CRITICAL LOGIC ---
         if order.status == Order.STATUS_SHIPPED:
             subject = f'Your Order #{order.id} Has Shipped!'
             template_name = 'order_shipped.html'
@@ -26,17 +20,29 @@ def send_email_task(order_id):
             subject = f'Your Order #{order.id} Has Been Cancelled'
             template_name = 'order_cancelled.html'
         else:
-            # This handles the 'Pending' case (from the signal)
             subject = f'Your Simply Organice Order #{order.id} is Confirmed!'
             template_name = 'order_confirmation.html'
-        # --- END CRITICAL LOGIC ---
 
         order_items = order.items.all()
+
+        order_items_with_total = []
+        total_amount = 0
+
+        for item in order_items:
+            item_total = (item.price_at_purchase * item.quantity)
+            if item.with_customization:
+                item_total += (item.customization_price_at_purchase * item.quantity)
+
+            item.total_price = item_total
+            order_items_with_total.append(item)
+            total_amount += item_total
+
         context = {
             'customer_name': order.customer.user.first_name,
             'order_id': order.id,
             'recipient_name': order.recipient_name,
-            'order_items': order_items,
+            'order_items': order_items_with_total,
+            'total_amount': total_amount,
         }
 
         from_email = settings.DEFAULT_FROM_EMAIL
@@ -61,9 +67,6 @@ def send_email_task(order_id):
 
 @shared_task
 def send_welcome_email_task(user_id):
-    """
-    A Celery task to send welcome email to new users.
-    """
     try:
         from django.contrib.auth import get_user_model
         User = get_user_model()
@@ -78,13 +81,12 @@ def send_welcome_email_task(user_id):
 
         from_email = settings.DEFAULT_FROM_EMAIL
         recipient_list = [user.email]
-        html_message = render_to_string(template_name, context)
+        html_message = render_to_string(template_name)
 
         email = EmailMessage(
             subject=subject,
             body=html_message,
             from_email=from_email,
-            to=recipient_list
         )
         email.content_subtype = 'html'
         email.send()

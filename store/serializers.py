@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import Product, Collection, Cart, CartItem, Customer, OrderItem, Order, Branch, ProductImage
 from django.db import transaction
-from .signals import order_created, order_created
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -103,7 +102,7 @@ class AddCartItemSerializer(serializers.ModelSerializer):
         product_id = self.validated_data['product_id']
         quantity = self.validated_data['quantity']
         with_customization = self.validated_data.get('with_customization', False)
-        selected_size = self.validated_data.get('selected_size')
+        selected_size = self.validated_data.get('selected_size', '')
         cart_id = self.context['cart_id']
 
         try:
@@ -117,7 +116,13 @@ class AddCartItemSerializer(serializers.ModelSerializer):
             cart_item.save()
             self.instance = cart_item
         except CartItem.DoesNotExist:
-            self.instance = CartItem.objects.create(cart_id=cart_id, **self.validated_data)
+            self.instance = CartItem.objects.create(
+                cart_id=cart_id,
+                product_id=product_id,
+                quantity=quantity,
+                with_customization=with_customization,
+                selected_size=selected_size if selected_size else None
+            )
         return self.instance
 
 
@@ -129,10 +134,34 @@ class UpdateCartItemSerializer(serializers.ModelSerializer):
 
 class CustomerSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(read_only=True)
+    first_name = serializers.CharField(source='user.first_name', required=False)
+    last_name = serializers.CharField(source='user.last_name', required=False)
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
 
     class Meta:
         model = Customer
-        fields = ['id', 'user_id', 'phone', 'birth_date']
+        fields = ['id', 'user_id', 'username', 'email', 'first_name', 'last_name', 'phone', 'birth_date']
+
+    def update(self, instance, validated_data):
+        # Extract nested user data
+        user_data = validated_data.pop('user', {})
+
+        # Update Customer fields
+        instance.phone = validated_data.get('phone', instance.phone)
+        instance.birth_date = validated_data.get('birth_date', instance.birth_date)
+        instance.save()
+
+        # Update User fields if provided
+        if user_data:
+            user = instance.user
+            if 'first_name' in user_data:
+                user.first_name = user_data['first_name']
+            if 'last_name' in user_data:
+                user.last_name = user_data['last_name']
+            user.save()
+
+        return instance
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -221,8 +250,6 @@ class CreateOrderSerializer(serializers.Serializer):
 
             OrderItem.objects.bulk_create(order_items)
             Cart.objects.filter(pk=cart_id).delete()
-
-            order_created.send_robust(self.__class__, order=order)
 
             return order
 

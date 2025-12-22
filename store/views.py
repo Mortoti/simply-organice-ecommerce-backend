@@ -29,12 +29,10 @@ from .permissions import IsAdminOrReadOnly, ViewCustomerHistoryPermissions
 from .pagination import DefaultPagination
 
 
-# Create your views here.
 class BranchViewSet(ReadOnlyModelViewSet):
     serializer_class = BranchSerializer
 
     def get_queryset(self):
-        # Only return active branches
         return Branch.objects.filter(is_active=True)
 
 
@@ -54,6 +52,8 @@ class ProductViewSet(ReadOnlyModelViewSet):
             queryset = queryset.filter(is_available=True)
 
         return queryset
+
+
 class ProductImageViewSet(ModelViewSet):
     serializer_class = ProductImageSerializer
 
@@ -79,28 +79,23 @@ class CollectionViewSet(ReadOnlyModelViewSet):
 
 class CartViewSet(ModelViewSet):
     serializer_class = CartSerializer
-    permission_classes = [IsAuthenticated]  # Require login
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CRITICAL: Only return carts for the logged-in user
         return Cart.objects.filter(user=self.request.user).prefetch_related('items__product')
 
     def create(self, request, *args, **kwargs):
-        # Check if user already has a cart with items
         existing_cart = Cart.objects.filter(user=request.user).first()
 
         if existing_cart:
-            # Return existing cart instead of creating new one
             serializer = self.get_serializer(existing_cart)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        # Create new cart for user
         cart = Cart.objects.create(user=request.user)
         serializer = self.get_serializer(cart)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
-        # Return user's carts (they should only have one, but return all just in case)
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -108,7 +103,7 @@ class CartViewSet(ModelViewSet):
 
 class CartItemViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
-    permission_classes = [IsAuthenticated]  # Require login
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -119,15 +114,48 @@ class CartItemViewSet(ModelViewSet):
             return CartItemSerializer
 
     def get_queryset(self):
-        # Verify the cart belongs to the logged-in user
         cart_id = self.kwargs['cart_pk']
         if not Cart.objects.filter(id=cart_id, user=self.request.user).exists():
-            return CartItem.objects.none()  # Return empty queryset if cart doesn't belong to user
+            return CartItem.objects.none()
 
         return CartItem.objects.filter(cart_id=cart_id).select_related('product')
 
     def get_serializer_context(self):
         return {'cart_id': self.kwargs['cart_pk']}
+
+    def create(self, request, *args, **kwargs):
+        print("=" * 50)
+        print("📥 RECEIVED REQUEST DATA:", request.data)
+        print("=" * 50)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        print("✅ VALIDATED DATA:", serializer.validated_data)
+
+        self.perform_create(serializer)
+
+        cart_item = serializer.instance
+        print("=" * 50)
+        print("✅ CART ITEM CREATED IN DATABASE:")
+        print(f"   ID: {cart_item.id}")
+        print(f"   Product: {cart_item.product.name}")
+        print(f"   Quantity: {cart_item.quantity}")
+        print(f"   with_customization: {cart_item.with_customization}")
+        print(f"   selected_size: {cart_item.selected_size}")
+        print(f"   Product base price: {cart_item.product.price}")
+        print(f"   Product customization price: {cart_item.product.customization_price}")
+        print(f"   Product is_customizable: {cart_item.product.is_customizable}")
+
+        calculated_total = cart_item.quantity * cart_item.product.price
+        if cart_item.with_customization and cart_item.product.is_customizable:
+            calculated_total += (cart_item.product.customization_price * cart_item.quantity)
+        print(f"   CALCULATED TOTAL: {calculated_total}")
+        print("=" * 50)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
 
 class CustomerViewSet(ModelViewSet):
     queryset = Customer.objects.all()
@@ -168,7 +196,7 @@ class OrderViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
         serializer = OrderSerializer(order)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)  # ✅ Added proper status code
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -180,13 +208,14 @@ class OrderViewSet(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_staff:
-            return Order.objects.prefetch_related('items__product').all()  # ✅ Added prefetch for performance
+            return Order.objects.prefetch_related('items__product').all()
 
         try:
             customer_id = Customer.objects.only('id').get(user_id=user.id)
-            return Order.objects.prefetch_related('items__product').filter(customer_id=customer_id)  # ✅ Added prefetch
+            return Order.objects.prefetch_related('items__product').filter(customer_id=customer_id)
         except Customer.DoesNotExist:
-            return Order.objects.none()  # ✅ Handle case where customer doesn't exist
+            return Order.objects.none()
+
 
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
@@ -237,17 +266,9 @@ from drf_spectacular.types import OpenApiTypes
     }
 )
 class VerifyPaymentView(APIView):
-    """
-    Verify a Paystack payment transaction.
-
-    GET /api/payments/verify/?reference=<payment_reference>
-
-    This is called after the user completes payment on Paystack.
-    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        # Get the payment reference from query parameters
         reference = request.query_params.get('reference', None)
 
         if not reference:
@@ -256,7 +277,6 @@ class VerifyPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Verify the payment with Paystack
         result = PaystackAPI.verify_payment(reference)
 
         if not result['status']:
@@ -265,10 +285,8 @@ class VerifyPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Payment verification successful
         payment_data = result['data']
 
-        # Get order ID from metadata
         order_id = payment_data.get('metadata', {}).get('order_id', None)
 
         if not order_id:
@@ -285,7 +303,6 @@ class VerifyPaymentView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Verify the order belongs to the current user (security check)
         try:
             customer = Customer.objects.get(user_id=request.user.id)
             if order.customer != customer:
@@ -299,15 +316,12 @@ class VerifyPaymentView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Get payment status from Paystack
         payment_status = payment_data.get('status')
-        amount = float(payment_data.get('amount', 0)) / 100  # Convert from pesewas
+        amount = float(payment_data.get('amount', 0)) / 100
         currency = payment_data.get('currency', 'GHS')
         paid_at = payment_data.get('paid_at')
 
-        # Handle different payment statuses
         if payment_status == 'success':
-            # Check if already marked as completed
             if order.payment_status == Order.PAYMENT_COMPLETED:
                 return Response(
                     {
@@ -320,7 +334,6 @@ class VerifyPaymentView(APIView):
                     status=status.HTTP_200_OK
                 )
 
-            # Update order to completed only if it's still pending
             if order.payment_status == Order.PAYMENT_PENDING:
                 with transaction.atomic():
                     order = Order.objects.select_for_update().get(id=order_id)
@@ -328,6 +341,9 @@ class VerifyPaymentView(APIView):
                         order.payment_status = Order.PAYMENT_COMPLETED
                         order.paystack_ref = reference
                         order.save()
+
+                        from core.tasks import send_email_task
+                        send_email_task.delay(order.id)
 
                 return Response(
                     {
@@ -341,7 +357,6 @@ class VerifyPaymentView(APIView):
                     status=status.HTTP_200_OK
                 )
             else:
-                # Order was already processed (maybe by webhook)
                 return Response(
                     {
                         "message": f"Payment status is {order.payment_status}",
@@ -353,7 +368,6 @@ class VerifyPaymentView(APIView):
                 )
 
         elif payment_status == 'failed':
-            # Update order to failed if it's still pending
             if order.payment_status == Order.PAYMENT_PENDING:
                 order.payment_status = Order.PAYMENT_FAILED
                 order.paystack_ref = reference
@@ -370,7 +384,6 @@ class VerifyPaymentView(APIView):
             )
 
         else:
-            # Handle other statuses like 'abandoned', 'reversed', etc.
             return Response(
                 {
                     "error": f"Payment status is {payment_status}",
@@ -380,16 +393,15 @@ class VerifyPaymentView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-class InitializePaymentView(APIView):
 
+
+class InitializePaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, order_id):
         try:
-            # Get the order
             order = Order.objects.prefetch_related('items__product').get(id=order_id)
 
-            # Verify the order belongs to the current user (security check)
             customer = Customer.objects.get(user_id=request.user.id)
             if order.customer != customer:
                 return Response(
@@ -397,16 +409,15 @@ class InitializePaymentView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Check if order is already paid
             if order.payment_status == Order.PAYMENT_COMPLETED:
                 return Response(
                     {"error": "This order has already been paid."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Calculate total amount from order items
             total_amount = sum(
-                item.price_at_purchase * item.quantity
+                (item.price_at_purchase * item.quantity) +
+                (item.customization_price_at_purchase * item.quantity if item.with_customization else 0)
                 for item in order.items.all()
             )
 
@@ -416,7 +427,6 @@ class InitializePaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Get customer email
             customer_email = request.user.email
 
             if not customer_email:
@@ -425,11 +435,8 @@ class InitializePaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Optional: Set callback URL (where Paystack redirects after payment)
-            # You can customize this based on your frontend URL
             callback_url = request.data.get('callback_url', None)
 
-            # Initialize payment with Paystack
             result = PaystackAPI.initialize_payment(
                 email=customer_email,
                 amount=total_amount,
@@ -438,7 +445,6 @@ class InitializePaymentView(APIView):
             )
 
             if result['status']:
-                # Save the access code and reference to the order
                 payment_data = result['data']
                 order.paystack_ref = payment_data['reference']
                 order.paystack_access_code = payment_data['access_code']
@@ -483,20 +489,9 @@ from django.db import transaction
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PaystackWebhookView(APIView):
-    """
-    Handle webhook notifications from Paystack.
-
-    POST /api/payments/webhook/
-
-    This endpoint receives automatic notifications from Paystack
-    when payment events occur (successful payment, failed payment, etc.)
-
-    IMPORTANT: This endpoint is called by Paystack, not by your frontend!
-    """
-    permission_classes = []  # No authentication required for webhooks
+    permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        # Get the signature from headers
         signature = request.headers.get('X-Paystack-Signature', '')
 
         if not signature:
@@ -505,17 +500,14 @@ class PaystackWebhookView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get raw request body (needed for signature verification)
         payload = request.body
 
-        # Verify the webhook signature
         if not PaystackAPI.verify_webhook_signature(payload, signature):
             return Response(
                 {"error": "Invalid signature"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Parse the webhook data
         try:
             webhook_data = json.loads(payload)
         except json.JSONDecodeError:
@@ -524,33 +516,25 @@ class PaystackWebhookView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get the event type
         event = webhook_data.get('event')
 
-        # Handle charge.success event
         if event == 'charge.success':
             return self._handle_successful_payment(webhook_data)
 
-        # Handle charge.failed event (optional but recommended)
         elif event == 'charge.failed':
             return self._handle_failed_payment(webhook_data)
 
-        # For other events, just acknowledge receipt
         return Response({"status": "received"}, status=status.HTTP_200_OK)
 
     def _handle_successful_payment(self, webhook_data):
-        """Handle successful payment webhook"""
         data = webhook_data.get('data', {})
 
-        # Get order ID from metadata
         order_id = data.get('metadata', {}).get('order_id')
 
         if not order_id:
-            # Log this for debugging but return 200 so Paystack doesn't retry
             print("Webhook received but no order_id in metadata")
             return Response({"status": "received"}, status=status.HTTP_200_OK)
 
-        # Get the payment reference and status
         reference = data.get('reference')
         payment_status = data.get('status')
 
@@ -559,27 +543,26 @@ class PaystackWebhookView(APIView):
             return Response({"status": "received"}, status=status.HTTP_200_OK)
 
         try:
-            # Use select_for_update to prevent race conditions
             with transaction.atomic():
                 order = Order.objects.select_for_update().get(id=order_id)
 
-                # Only update if payment is still pending
                 if order.payment_status == Order.PAYMENT_PENDING:
                     if payment_status == 'success':
                         order.payment_status = Order.PAYMENT_COMPLETED
                         order.paystack_ref = reference
                         order.save()
 
+                        from core.tasks import send_email_task
+                        send_email_task.delay(order.id)
+
                         print(f"✅ Order {order_id} payment confirmed via webhook")
                     else:
-                        # Status is not 'success' even in charge.success event
                         order.payment_status = Order.PAYMENT_FAILED
                         order.paystack_ref = reference
                         order.save()
 
                         print(f"⚠️ Order {order_id} marked as failed (unexpected status in charge.success)")
                 else:
-                    # Order already processed (probably by VerifyPaymentView)
                     print(f"ℹ️ Order {order_id} already processed. Current status: {order.payment_status}")
 
             return Response({"status": "success"}, status=status.HTTP_200_OK)
@@ -592,7 +575,6 @@ class PaystackWebhookView(APIView):
             return Response({"status": "error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _handle_failed_payment(self, webhook_data):
-        """Handle failed payment webhook"""
         data = webhook_data.get('data', {})
 
         order_id = data.get('metadata', {}).get('order_id')
@@ -605,7 +587,6 @@ class PaystackWebhookView(APIView):
             with transaction.atomic():
                 order = Order.objects.select_for_update().get(id=order_id)
 
-                # Only update if payment is still pending
                 if order.payment_status == Order.PAYMENT_PENDING:
                     order.payment_status = Order.PAYMENT_FAILED
                     order.paystack_ref = reference
