@@ -3,6 +3,7 @@ from django.db import models
 from uuid import uuid4
 from django.contrib import admin
 from .validators import validate_file_size
+from cloudinary.models import CloudinaryField
 
 from django.conf import settings
 
@@ -64,9 +65,7 @@ class ProductSize(models.Model):
         return f"{self.product.name} - {self.size_name} (${self.price})"
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(
-        upload_to='products/',
-        validators= [validate_file_size])
+    image = CloudinaryField('image', validators=[validate_file_size])
 class Customer(models.Model):
     phone = models.CharField(max_length=255)
     birth_date = models.DateField(null=True, blank=True)
@@ -148,8 +147,8 @@ class Order(models.Model):
                 # Save first, then send email
                 super().save(*args, **kwargs)
 
-                # Send email asynchronously using Celery
-                send_email_task.delay(self.id)
+
+                send_email_task(self.id)
                 return
 
         # If it's a new order or status didn't change, just save normally

@@ -341,7 +341,7 @@ class VerifyPaymentView(APIView):
                         order.save()
 
                         from core.tasks import send_email_task
-                        send_email_task.delay(order.id)
+                        send_email_task(order.id)
 
                 return Response(
                     {
@@ -551,7 +551,7 @@ class PaystackWebhookView(APIView):
                         order.save()
 
                         from core.tasks import send_email_task
-                        send_email_task.delay(order.id)
+                        send_email_task(order.id)
 
                         print(f"✅ Order {order_id} payment confirmed via webhook")
                     else:

@@ -13,7 +13,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
-from decouple import config
+import os
+import dj_database_url
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,7 +47,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
     'django_filters',
     'rest_framework',
     'store',
@@ -66,7 +72,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'ecommerce_backend.urls'
-import os
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -87,7 +93,6 @@ WSGI_APPLICATION = 'ecommerce_backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-import dj_database_url
 
 DATABASES = {
     'default': dj_database_url.parse(config('DATABASE_URL'))
@@ -138,6 +143,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# Cloudinary Configuration
+cloudinary.config(
+    cloud_name=config('CLOUDINARY_CLOUD_NAME'),
+    api_key=config('CLOUDINARY_API_KEY'),
+    api_secret=config('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -146,19 +160,22 @@ REST_FRAMEWORK = {
     'COERCE_DECIMAL_TO_STRING': False,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-
-
     ),
-'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
 AUTH_USER_MODEL = 'core.User'
 
 DJOSER = {
+    'PASSWORD_RESET_CONFIRM_URL': '#/password/reset/confirm/{uid}/{token}',
+    'USERNAME_RESET_CONFIRM_URL': '#/username/reset/confirm/{uid}/{token}',
+    'ACTIVATION_URL': '#/activate/{uid}/{token}',
+    'SEND_ACTIVATION_EMAIL': False,
+    'TOKEN_MODEL': None,
+    'LOGOUT_ON_PASSWORD_CHANGE': False,
     'SERIALIZERS': {
         'user_create': 'core.serializers.UserCreateSerializer',
         'current_user': 'core.serializers.UserSerializer',
-
     }
 }
 
@@ -169,7 +186,6 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -178,26 +194,5 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 
-
-
-# --- CELERY SETTINGS ---
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-
-
-DEFAULT_FROM_EMAIL = 'admin@simplyorganice.com'
-
-
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
-PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY')
-
-
-DJOSER = {
-    'PASSWORD_RESET_CONFIRM_URL': '#/password/reset/confirm/{uid}/{token}',
-    'USERNAME_RESET_CONFIRM_URL': '#/username/reset/confirm/{uid}/{token}',
-    'ACTIVATION_URL': '#/activate/{uid}/{token}',
-    'SEND_ACTIVATION_EMAIL': False,
-    'TOKEN_MODEL': None,  # This is the key line - disables Token auth since you use JWT
-    'LOGOUT_ON_PASSWORD_CHANGE': False,
-    'SERIALIZERS': {},
-}
+PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')

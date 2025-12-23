@@ -4,6 +4,13 @@ from django.db import transaction
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
     def create(self, validated_data):
         product_id = self.context['product_id']
         return ProductImage.objects.create(product_id=product_id, **validated_data)
